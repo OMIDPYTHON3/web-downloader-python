@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111315">
+<title>WebDownloader</title>
+<link rel="stylesheet" href="/static/style.css?v=11">
+</head>
+<body>
+<header class="topbar">
+  <button class="topIcon" onclick="openDrawer()" aria-label="Menu"><span>☰</span></button>
+  <div class="brand"><strong>WebDownloader</strong><span id="total">0 B/s</span></div>
+  <button class="topIcon" onclick="toggleSearch()" aria-label="Search">⌕</button>
+  <button class="topIcon" onclick="openSettings()" aria-label="More">⋮</button>
+</header>
+<div id="searchbar" class="searchbar hidden"><div class="searchBox"><span>⌕</span><input id="search" placeholder="Search downloads…"><button onclick="toggleSearch()">×</button></div></div>
+
+<main>
+  <section class="speedPanel">
+    <div class="speedHead">
+      <div><div class="speedLabel">DOWNLOAD SPEED</div><b id="liveSpeed">0 B/s</b></div>
+      <div class="liveBadge"><i></i> LIVE</div>
+    </div>
+    <div class="chart"><div class="grid g1"></div><div class="grid g2"></div><div class="grid g3"></div><div class="grid g4"></div><svg id="spark" viewBox="0 0 600 120" preserveAspectRatio="none"><polyline id="sparkline" points="0,118 60,118 120,118 180,118 240,118 300,118 360,118 420,118 480,118 540,118 600,118"/></svg></div>
+  </section>
+
+  <div class="queueTools"><button class="allBtn startAll" onclick="startAll()"><span>▶</span> Start all</button><button class="allBtn stopAll" onclick="stopAll()"><span>Ⅱ</span> Stop all</button></div>
+
+  <div class="tabs">
+    <button id="tabDownloading" class="tab active" onclick="setTab('downloading')"><span>Downloading</span><em id="downCount">0</em></button>
+    <button id="tabDownloaded" class="tab" onclick="setTab('downloaded')"><span>Downloaded</span><em id="doneCount">0</em></button>
+  </div>
+  <section id="list"></section>
+</main>
+
+<nav class="bottomNav">
+  <button class="navActive"><span class="navIcon">▣</span><span>Downloads</span></button>
+  <button onclick="openBulk()"><span class="navIcon">☷</span><span>Queue</span></button>
+  <button onclick="openDrawer()"><span class="navIcon">☰</span><span>Settings</span></button>
+</nav>
+<button class="fab" onclick="openAdd()" aria-label="Add download">+</button>
+
+<div id="drawer" class="drawer hidden">
+  <div class="drawerShade" onclick="closeDrawer()"></div>
+  <aside>
+    <div class="drawerHead"><div><small>WEB DOWNLOAD MANAGER</small><b>Settings</b></div><button class="closeBtn" onclick="closeDrawer()">×</button></div>
+    <div id="drawerBody"></div>
+  </aside>
+</div>
+
+<div id="modal" class="hidden"><section class="modalCard"><div class="modalHead"><div><small id="modalKicker">DOWNLOAD</small><b id="title"></b></div><button class="closeBtn" onclick="closeModal()">×</button></div><div id="form"></div></section></div>
+<script src="/static/app.js?v=11"></script>
+</body>
+</html>
