@@ -26,4 +26,4 @@ Features:
 - Scheduler timestamp
 - Mobile-first ADM-like UI
 
-Download folder selection is constrained to the configured download root for safety. Set `download_dir` in Settings/config.json to e.g. `/mnt/hdd2/1db/.Ban/newf1`.
+Download folder selection is constrained to the configured download root for safety. Set `download_dir` in Settings/config.json to e.g. `/mnt/hdd`.
