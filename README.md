@@ -2,17 +2,6 @@
 
 ADM-style lightweight web download manager for Raspberry Pi / Ubuntu / Termux.
 
-<p align="center">
-  <img src="1.jpg" width="32%">
-  <img src="2.jpg" width="32%">
-  <img src="3.jpg" width="32%">
-</p>
-
-
-
-
-
-
 Run:
 ```bash
 python3 -m venv .venv
@@ -37,4 +26,4 @@ Features:
 - Scheduler timestamp
 - Mobile-first ADM-like UI
 
-Download folder selection is constrained to the configured download root for safety. Set `download_dir` in Settings/config.json to e.g. `/mnt/hdd`.
+Download folder selection is constrained to the configured download root for safety. Set `download_dir` in Settings/config.json to e.g. `/mnt/hdd2/1db/.Ban/newf1`.

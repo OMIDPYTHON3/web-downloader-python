@@ -78,7 +78,7 @@ def build_item(x):
                 raise ValueError('Schedule end must be after start')
         except ValueError: raise
         except Exception: end=None
-    return {'url':u,'filename':name,'filepath':os.path.join(folder,name),'threads':max(1,min(16,int(x.get('threads',cfg['default_threads'])))),'interface':x.get('interface','auto'),'status':'Scheduled' if start else 'Waiting','scheduled_at':start,'schedule_end_at':end,'category':(x.get('category') if x.get('category') not in (None,'','auto') else detect_category(name,u))}
+    return {'url':u,'filename':name,'filepath':os.path.join(folder,name),'threads':max(1,min(32,int(x.get('threads',cfg['default_threads'])))),'interface':x.get('interface','auto'),'status':'Scheduled' if start else 'Waiting','scheduled_at':start,'schedule_end_at':end,'category':(x.get('category') if x.get('category') not in (None,'','auto') else detect_category(name,u))}
 
 @app.on_event('startup')
 async def startup():
@@ -153,6 +153,38 @@ async def control_all(act:str):
     else:return {'error':'Unknown control'}
     await emit();return {'ok':True}
 
+@app.post('/api/downloads/{i}/redownload')
+async def redownload(i:int):
+    d=await get(i)
+    if not d: return {'error':'Download not found'}
+
+    # Stop an existing worker and wait for it to finish before touching files.
+    t=engine.running.get(i)
+    if t:
+        t.cancel()
+        try:
+            await t
+        except asyncio.CancelledError:
+            pass
+        except Exception:
+            pass
+
+    def clean():
+        for path in [d['filepath'], d['filepath']+'.part']:
+            try: os.remove(path)
+            except FileNotFoundError: pass
+        for n in range(32):
+            try: os.remove(d['filepath']+f'.seg{n}')
+            except FileNotFoundError: pass
+
+    await asyncio.to_thread(clean)
+    await update(i,status='Waiting',downloaded_size=0,total_size=0,speed=0,average_speed=0,eta=0,error='',started_at=None,completed_at=None)
+    await emit()
+
+    # Re-enter the normal scheduler so max_concurrent/FIFO rules are preserved.
+    await engine.resume(i)
+    return await get(i)
+
 @app.post('/api/downloads/{i}/{act}')
 async def action(i:int,act:str):
     if act=='pause':await engine.pause(i)
@@ -161,6 +193,30 @@ async def action(i:int,act:str):
     else:return {'error':'Unknown action'}
     return await get(i)
 
+@app.put('/api/downloads/{i}')
+async def edit_download(i:int,r:Request):
+    d=await get(i)
+    if not d: return {'error':'Download not found'}
+    x=await r.json()
+    allowed={'filename','threads','interface','category','scheduled_at','schedule_end_at'}
+    changes={k:x[k] for k in allowed if k in x}
+    if 'threads' in changes:
+        changes['threads']=max(1,min(32,int(changes['threads'])))
+    if 'filename' in changes:
+        changes['filename']=safe_name(changes['filename'])
+        newpath=os.path.join(os.path.dirname(d['filepath']),changes['filename'])
+        if newpath!=d['filepath'] and os.path.exists(newpath): return {'error':'A file with this name already exists'}
+        if newpath!=d['filepath'] and os.path.exists(d['filepath']):
+            await asyncio.to_thread(os.rename,d['filepath'],newpath)
+        changes['filepath']=newpath
+    was_running=i in engine.running
+    if was_running:
+        await engine.pause(i)
+    if changes: await update(i,**changes)
+    if was_running:
+        await update(i,status='Waiting',error='')
+    await emit(); return await get(i)
+
 @app.delete('/api/downloads/{i}')
 async def rem(i:int):
     d=await get(i);await engine.cancel(i);await remove(i)
@@ -168,7 +224,7 @@ async def rem(i:int):
         for p in (d['filepath'],d['filepath']+'.part'):
             try:os.remove(p)
             except:pass
-        for n in range(16):
+        for n in range(32):
             try:os.remove(d['filepath']+f'.seg{n}')
             except:pass
     await emit();return {'ok':True}
@@ -178,8 +234,10 @@ async def getset():return cfg
 @app.put('/api/settings')
 async def setset(r:Request):
     x=await r.json()
-    for k in ('download_dir','max_concurrent','default_threads','retry_count','retry_delay','global_speed_limit','auto_resume','download_roots'):
+    for k in ('download_dir','max_concurrent','default_threads','retry_count','retry_delay','auto_resume','smart_download','download_roots'):
         if k in x:cfg[k]=x[k]
+    cfg['max_concurrent']=max(1,min(8,int(cfg.get('max_concurrent',4))))
+    cfg['default_threads']=max(1,min(32,int(cfg.get('default_threads',8))))
     cfg['download_dir']=os.path.abspath(cfg['download_dir']);os.makedirs(cfg['download_dir'],exist_ok=True)
     cfg['download_roots']=list(dict.fromkeys([os.path.abspath(os.path.expanduser(str(v))) for v in cfg.get('download_roots',[])]+[cfg['download_dir']]))
     for p in cfg['download_roots']:
